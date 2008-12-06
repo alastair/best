@@ -1,0 +1,25 @@
+best.m3u
+========
+
+Best genererates a playlist of your music collection based on the
+top two tracks of each artist in your collection.  The top tracks
+are chosen using last.fm's popularity lists.
+
+To run
+======
+bestsongs.sh /path/to/music
+selectsongs > best.txt
+song2m3u.sh /path/to/music
+
+To do
+=====
+Scripts expect music to be in directories named 'Artist - year - Album'
+and files named 'track - Artist - Name'
+Use last.fm's api to search for an artist in the case that a match
+can't be found
+XML parsing needs to be updated to work with python 2.5
+
+Authors
+=======
+Perry Lorrier - http://github.com/isomer/
+Alastair Porter http://github.com/alastair/

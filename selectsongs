@@ -1,0 +1,71 @@
+#!/usr/bin/python
+import os
+import xml.dom.ext.reader.Sax2
+import sys
+
+alldata={}
+
+def fix(x):
+	try:
+		return unicode(x)
+	except:
+		#print `x`,unicode(x,"utf8").encode("ascii","replace")
+		return unicode(x,"utf8")
+
+for i in os.listdir("data"):
+	if i.startswith("."):
+		continue
+
+	# only process the first 5 for speed while testing
+#	if len(alldata.keys())>5:
+#		break
+
+	# create Reader object
+	reader = xml.dom.ext.reader.Sax2.Reader()
+
+	# parse the document
+	try:
+		doc = reader.fromStream(open(os.path.join("data",i)))
+	except xml.sax._exceptions.SAXParseException:
+		print >>sys.stderr,"*** failed to parse",i
+		continue
+	alldata[fix(i)]=[]
+	print >>sys.stderr,i
+	for j in doc.lastChild.childNodes:
+		if j.nodeType == 3: # text node
+			continue
+		data={}
+		for k in j.childNodes:
+			if k.nodeType == 3: # text node
+				continue
+			if k.childNodes:
+				if k.nodeName=="reach":
+					data[k.nodeName]=int(k.firstChild.data)
+				else:
+					data[k.nodeName]=k.firstChild.data
+		x=alldata[fix(i)]
+		x.append(data)
+		alldata[fix(i)]=x
+
+results=[]
+songs={}
+for i in alldata:
+	songs[i]=2
+	scores=[(x["reach"],x["name"]) for x in alldata[i]]
+	scores.sort()
+	results=results+[u"%s : %s" % (i,x[1]) for x in scores[:2]]
+
+while len(results)<3000:
+	x=[(float(z["reach"])/songs[y],y,z["name"]) for y in alldata for z in alldata[y] ]
+	x.sort()
+	x.reverse()
+	while x!=[] and (u"%s : %s" % (x[0][1],x[0][2]) in results):
+		x.pop(0)
+	if x==[]:
+		print >>sys.stderr,"Not enough data",len(results)
+		break
+	results.append(u"%s : %s" % (x[0][1],x[0][2]))
+	songs[x[0][1]]=songs[x[0][1]]+1
+
+for i in results:
+	print i.encode("utf8")

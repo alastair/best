@@ -1,0 +1,93 @@
+#!/usr/bin/python
+import sys
+import os
+import fnmatch
+import random
+import sre
+
+debug=0
+
+preferences=r"+greatest hits:+best of:-\<live:-remix:-mix:+collection:-\("
+
+preferences=[x.lower() for x in preferences.split(":")]
+
+BETTER_THAN=-1
+WORSE_THAN=1
+
+def compare(a,b,debug=0):
+	for i in preferences:
+		flag,name = i[0],i[1:]
+		aok = (sre.search(name,a.lower()) is not None)
+		bok = (sre.search(name,b.lower()) is not None)
+		if aok == bok:
+			if debug>1: print >>sys.stderr,"",`a`,"incompariable to",`b`,"because of",flag,`name`
+			continue
+		if aok and not bok:
+			if flag=="+":
+				if debug: print >>sys.stderr,"",a,"better than",b,"because of",flag,`name`
+				return BETTER_THAN
+			else:
+				if debug: print >>sys.stderr,"",b,"better than",a,"because of",flag,`name`
+				return WORSE_THAN
+		if not aok and bok:
+			if flag=="-":
+				if debug: print >>sys.stderr,"",a,"better than",b,"because of",flag,`name`
+				return BETTER_THAN
+			else:
+				if debug: print >>sys.stderr,"",b,"better than",a,"because of",flag,`name`
+				return WORSE_THAN
+	c = cmp(a.lower(),b.lower())
+	if c!=0:
+		if debug: 
+			if c<0:
+				print >>sys.stderr,"",`a.lower()`,"asciibetically earlier than",`b.lower()`
+			elif c>0:
+				print >>sys.stderr,"",`a.lower()`,"asciibetically later than",`b.lower()`
+		return c
+	c = cmp(a,b)
+	if debug: 
+		if c<0:
+			print >>sys.stderr,"",`a`,"asciibetically earlier than",`b`
+		elif c>0:
+			print >>sys.stderr,"",`a`,"asciibetically later than",`b`
+		else:
+			print >>sys.stderr,"",`a`,"asciibetically equal to",`b`
+	return c
+
+def fix(x):
+	return x				\
+		.replace(".","*")		\
+		.replace(",","*")		\
+		.replace("?","*")		\
+		.replace("+","*")		\
+		.replace("'","*").lower()
+
+def fixartist(x):
+	return x.replace("+","*")
+
+albums=os.listdir(sys.argv[1])
+for i in sys.argv[2:]:
+	for j in open(i,"r"):
+		aname,s=j.strip().split(":",1)
+		aname = fixartist(aname)
+		a=[
+			os.path.join(sys.argv[1],x) 
+			for x in albums 
+			if fnmatch.fnmatch(x.lower(),"*"+aname.lower()+"*")]
+		a=reduce(lambda a,b:a+b,[[(x,y) for y in os.listdir(x)] for x in a],[])
+		a=[
+			os.path.join(x,y) 
+			for x,y in a 
+			if fnmatch.fnmatch(y.lower(),"*-*-*"+fix(s)+"*.mp3")
+			]
+		if a==[]:
+			print >>sys.stderr,aname,":",s,":","Not found"
+		else:
+			a.sort(compare)
+			if len(a)>1:
+				print >>sys.stderr,aname,":",s,":","multiples. preferences:"
+				old=a[0]
+				for k in a[1:]:
+					compare(old,k,debug=1)
+					old=k
+			print a[0]
